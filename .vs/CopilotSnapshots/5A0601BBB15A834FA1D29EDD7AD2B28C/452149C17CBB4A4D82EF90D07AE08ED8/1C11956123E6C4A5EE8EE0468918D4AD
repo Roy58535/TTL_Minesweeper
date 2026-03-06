@@ -1,0 +1,102 @@
+﻿#include <iostream>
+#include "minesweeper.h"
+#include "display.h"
+#include "common.h"
+#include <SPI.h>
+#include <vector>
+
+#define GRID_HEIGHT 8
+#define GRID_WIDTH 8
+
+int mineGrid[GRID_HEIGHT][GRID_WIDTH] = { 0 };
+int flagGrid[GRID_HEIGHT][GRID_WIDTH] = { 0 };
+int numGrid[GRID_HEIGHT][GRID_WIDTH] = { 0 };
+int openedGrid[GRID_HEIGHT][GRID_WIDTH] = { 0 };
+bool setupDone = false;
+
+void gameSetup() {
+  if (!setupDone) {
+	for (int i = 0; i < GRID_HEIGHT; i++) {
+	  for (int j = 0; j < GRID_WIDTH; j++) {
+		if (mineGrid[i][j] == 0) {
+		  numGrid[i][j] = 0;
+		  for (int k = -1; k <= 1; k++) {
+			for (int l = -1; l <= 1; l++) {
+			  if (i + k >= 0 && i + k < GRID_HEIGHT && j + l >= 0 && j + l < GRID_WIDTH) {
+				numGrid[i][j] += mineGrid[i + k][j + l];
+			  }
+			}
+		  }
+		}
+		else {
+		  numGrid[i][j] = -1; // -1 indicates a mine
+		}
+	  }
+	}
+	setupDone = true;
+
+	//for (int i = 0; i < GRID_HEIGHT; i++) {
+	//  for (int j = 0; j < GRID_WIDTH; j++) {
+	//	Serial.println("Displaying coordinates (" + String(i) + ", " + String(j) + ")");
+	//	if (mineGrid[i][j] == 1) {
+	//	  displayMine(i, j);
+	//	}
+	//	else {
+	//	  displayNumber(i, j, numGrid[i][j]);
+	//	}
+	//  }
+	//}
+
+  }
+}
+
+void gameLoop(int upButton, int downButton, int leftButton, int rightButton) {
+  // For testing, we will just open all cells one by one
+ // for (int i = 0; i < GRID_HEIGHT; i++) {
+	//for (int j = 0; j < GRID_WIDTH; j++) {
+	//  openCell(i, j);
+	//}
+ // }
+
+  openCell(4, 5);
+}
+
+void readMineGrid(int col, int row, int val) {
+  mineGrid[row][col] = val;
+}
+
+void openCell(int row, int col) {
+  if (mineGrid[row][col] == 1) {
+	displayMine(row, col);
+	//openAllMines();
+	//displayLoss();
+  }
+  else {
+	displayNumber(row, col, numGrid[row][col]);
+	if (numGrid[row][col] == 0) {
+	  
+	  for (int k = -1; k <= 1; k++) {
+		for (int l = -1; l <= 1; l++) {
+		  if (k == 0 && l == 0) {
+			break; // Skip the current cell
+		  }
+		  if (row + k >= 0 && row + k < GRID_HEIGHT && col + l >= 0 && col + l < GRID_WIDTH) {
+			if (flagGrid[row + k][col + l] == 0) {
+			  openCell(row + k, col + l);
+			}
+		  }
+		}
+	  }
+	}
+  }
+}
+
+void openAllMines() {
+  for (int i = 0; i < GRID_HEIGHT; i++) {
+	for (int j = 0; j < GRID_WIDTH; j++) {
+	  if (mineGrid[i][j] == 1 && flagGrid[i][j] == 0) {
+		displayMine(i, j);
+	  }
+	}
+  }
+}

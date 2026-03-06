@@ -1,0 +1,9 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM" />
+    <Platform Name="ARM64" />
+  </Configurations>
+  <Project Path="project_1.vcxproj">
+    <Deploy />
+  </Project>
+</Solution>

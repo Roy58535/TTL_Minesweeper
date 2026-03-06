@@ -1,0 +1,252 @@
+#include "minesweeper.h"
+#include "display.h"
+#include "common.h"
+#include <cstdint>
+
+#define WE_PIN 23 // LOW ACTIVE
+#define CE_PIN 22 // LOW ACTIVE
+#define STATE_1_PIN 21 // LOW ACTIVE
+#define STATE_2_PIN 20 // LOW ACTIVE
+#define D0_PIN 19 // Data
+#define DIR_PIN 0 // LOW = R to L, HIGH = L to R
+#define CLK_PIN 14
+#define RIGHT_BUTTON_PIN 18
+#define UP_BUTTON_PIN 17
+#define LEFT_BUTTON_PIN 16
+#define DOWN_BUTTON_PIN 15
+#define FLAG_BUTTON_PIN 7
+#define OPEN_BUTTON_PIN 6
+
+#define GRID_HEIGHT 8
+#define GRID_WIDTH 8
+
+int grid[GRID_HEIGHT][GRID_WIDTH] = {0};
+int currRAMRead;
+int addrCnt;
+int clk;
+int clkTemp;
+
+int rightButtonTemp;
+int rightButton;
+int upButtonTemp;
+int upButton;
+int leftButtonTemp;
+int leftButton;
+int downButtonTemp;
+int downButton;
+int flagButtonTemp;
+int flagButton;
+int openButtonTemp;
+int openButton;
+
+int32_t timer;
+int32_t timerDisplay;
+int32_t lastTime;
+elapsedMillis elapsedTime;
+
+void setup(){
+  pinMode(DIR_PIN, OUTPUT);
+  pinMode(WE_PIN, OUTPUT);
+  pinMode(CE_PIN, OUTPUT);
+  pinMode(D0_PIN, INPUT);
+  pinMode(STATE_1_PIN, INPUT);
+  pinMode(STATE_2_PIN, INPUT);
+  pinMode(CLK_PIN, INPUT);
+  pinMode(RIGHT_BUTTON_PIN, INPUT);
+  pinMode(UP_BUTTON_PIN, INPUT);
+  pinMode(LEFT_BUTTON_PIN, INPUT);
+  pinMode(DOWN_BUTTON_PIN, INPUT);
+  pinMode(FLAG_BUTTON_PIN, INPUT);
+  pinMode(OPEN_BUTTON_PIN, INPUT);
+
+  addrCnt = 0;
+
+  setupDisplay();
+  lastTime = millis();
+  timer = 0.0;
+  timerDisplay = 0.0;
+
+  // Testing display
+  //moveCursor(0, 0, 5, 6);
+  //displayMine(3, 3);
+  //displayFlag(2, 2);
+  //displayNumber(0, 1, 1);
+  //displayFlagButton();
+  //displayOpenButton();
+}
+
+void loop(){
+  digitalWrite(DIR_PIN, HIGH);
+
+  //--------------------------Timer Logic--------------------------//
+  if (firstOpened && !isGameOver)timer = millis() - lastTime;
+  
+  if (timer - timerDisplay >= 100) {
+    //Serial.println(timer);
+    timerDisplay = timer;
+    displayTimer(timerDisplay);
+  }
+  //--------------------------End of Timer Logic--------------------------//
+
+  
+  
+  //--------------------------RAM Manipulation--------------------------//
+  clkTemp = digitalRead(CLK_PIN);
+  if (clkTemp != clk){
+    if (clkTemp == HIGH) {
+      if (digitalRead(STATE_1_PIN) == LOW){
+        setupDone = false;
+		addrCnt = 0;
+        writeFromCircuit();
+      }
+      else if (digitalRead(STATE_2_PIN) == LOW){
+		digitalWrite(WE_PIN, HIGH);  // Set to read mode
+        int currRAMRead = readToTeensy();
+        //Serial.println(currRAMRead);
+		readMineGrid(addrCnt % GRID_WIDTH, addrCnt / GRID_HEIGHT, currRAMRead);
+        addrCnt++;
+      }
+    }
+    clk = clkTemp;
+  }
+  //--------------------------End of RAM Manipulation--------------------------//
+
+  
+  
+  // Playing the game
+  else if (digitalRead(STATE_1_PIN) == HIGH && digitalRead(STATE_2_PIN) == HIGH){
+	if (!setupDone) {
+   //   for (int i = 0; i < 8; i++) {
+   //     for (int j = 0; j < 8; j++) {
+   //       Serial.print(mineGrid[i][j]);
+   //       Serial.print(" ");
+   //     }
+   //     Serial.println();
+	  //}
+	  lastTime = millis();
+	  timerDisplay = 0;
+	  setupDisplay();
+	  gameSetup();
+	  delay(1);
+	}
+
+    //---------------Input Handling and Game Logic-------------------//
+    //Right Button
+    int right = 0;
+    rightButtonTemp = digitalRead(RIGHT_BUTTON_PIN);
+    if (rightButtonTemp != rightButton) {
+      right = rightButtonTemp;
+      rightButton = rightButtonTemp;
+    }
+    else {
+	  right = 0;
+    }
+
+    //Left Button
+    int left = 0;
+    leftButtonTemp = digitalRead(LEFT_BUTTON_PIN);
+    if (leftButtonTemp != leftButton) {
+	  left = leftButtonTemp;
+      leftButton = leftButtonTemp;
+    }
+    else {
+	  left = 0;
+    }
+
+    //Up Button
+	int up = 0;
+    upButtonTemp = digitalRead(UP_BUTTON_PIN);
+    if (upButtonTemp != upButton) {
+	  up = upButtonTemp;
+      upButton = upButtonTemp;
+    }
+    else {
+	  up = 0;
+    }
+
+    //Down Button
+    int down = 0;
+    downButtonTemp = digitalRead(DOWN_BUTTON_PIN);
+    if (downButtonTemp != downButton) {
+	  down = downButtonTemp;
+      downButton = downButtonTemp;
+    }
+    else {
+      down = 0;
+    }
+
+    //Flag Button
+    int flag = 0;
+    flagButtonTemp = digitalRead(FLAG_BUTTON_PIN);
+    if (flagButtonTemp != flagButton) {
+	  flag = flagButtonTemp;
+      flagButton = flagButtonTemp;
+    }
+    else {
+	  flag = 0;
+    }
+
+    //Open Button
+    int open = 0;
+    openButtonTemp = digitalRead(OPEN_BUTTON_PIN);
+    if (openButtonTemp != openButton) {
+	  open = openButtonTemp;
+      openButton = openButtonTemp;
+    }
+    else {
+	  open = 0;
+    }
+
+	gameLoop(up, down, left, right, flag, open);
+  }
+}
+
+
+int readToTeensy(){
+  delayMicroseconds(100);
+  // Config before reading
+  digitalWrite(WE_PIN, HIGH);  // Set to read mode
+  delayMicroseconds(1);
+
+  // Read
+  digitalWrite(CE_PIN, LOW);  // Enable the chip (active low)
+  delayMicroseconds(300);
+  int val = digitalRead(D0_PIN);
+
+  // Configure after reading
+  digitalWrite(CE_PIN, HIGH);  
+  delayMicroseconds(1);
+  //digitalWrite(WE_PIN, LOW);
+  
+  return val;
+}
+
+void writeFromCircuit(){
+  delayMicroseconds(100);
+  // Config before writing
+  digitalWrite(WE_PIN, LOW);  // Set to write mode
+  delayMicroseconds(1);
+
+  // Write
+  digitalWrite(CE_PIN, LOW);   // Activate the chip 
+  delayMicroseconds(300);
+
+  digitalWrite(WE_PIN, HIGH);  // Set to read mode after writing
+  delayMicroseconds(1);
+  digitalWrite(CE_PIN, HIGH);  // Deactivate the chip
+  delayMicroseconds(1);
+}
+
+void writeFromTeensy(int val){
+  // Config before writing
+  digitalWrite(WE_PIN, LOW);  // Set to write mode
+  delayMicroseconds(1);
+
+  // Write
+  digitalWrite(CE_PIN, LOW);   // Activate the chip 
+  delayMicroseconds(1);
+  digitalWrite(CE_PIN, HIGH);  // Deactivate the chip
+  
+  digitalWrite(WE_PIN, HIGH);  // Set to read mode after writing
+  delayMicroseconds(1);
+}
