@@ -110,7 +110,7 @@ const uint8_t num8[] PROGMEM = {
 };
 
 
-uint16_t NUM_COLORS[8] = { ILI9341_BLUE, ILI9341_DARKGREEN, ILI9341_RED, ILI9341_PURPLE, 
+uint16_t NUM_COLORS[8] = { ILI9341_BLUE, ILI9341_GREEN, ILI9341_RED, ILI9341_PURPLE, 
 ILI9341_MAROON, ILI9341_CYAN, ILI9341_BLACK, ILI9341_LIGHTGREY };
 
 int currentDisplayGrid[8][8] = { 0 };
@@ -156,7 +156,7 @@ void displayTimer(int32_t time) {
   tft.setTextSize(2);
   tft.setTextColor(ILI9341_WHITE, ILI9341_BLACK);
   double timeInSeconds = time / 1000.0;
-  tft.println(timeInSeconds, 1);
+  tft.println("Time: " + String(timeInSeconds, 1) + "    ");
 }
 
 void displayFlagButton() {
@@ -254,16 +254,24 @@ void resetCell(int row, int col) {
 }
 
 void displayWin() {
-  displayTitle("You Win!", ILI9341_GREEN);
+  displayTitle("You Win!             ", ILI9341_GREEN);
 }
 
 void displayLoss() {
-  displayTitle("You Lose!", ILI9341_RED);
+  displayTitle("You Lose!            ", ILI9341_RED);
 }
 
 void displayTitle(String title, uint16_t color) {
   tft.setCursor(10, 10);
   tft.setTextSize(3);
   tft.setTextColor(color, ILI9341_BLACK);
+  tft.setTextWrap(false);
   tft.println(title);
+}
+
+void displayMineCount(int mineCount) {
+  tft.setCursor(10, 55);
+  tft.setTextSize(2);
+  tft.setTextColor(ILI9341_RED, ILI9341_BLACK);
+  tft.println("Mines: " + String(mineCount) + "    ");
 }

@@ -2,6 +2,8 @@
 #include "display.h"
 #include "common.h"
 #include <cstdint>
+#include <cstdlib>
+#include <cmath>
 
 #define WE_PIN 23 // LOW ACTIVE
 #define CE_PIN 22 // LOW ACTIVE
@@ -81,7 +83,7 @@ void loop(){
   //--------------------------Timer Logic--------------------------//
   if (firstOpened && !isGameOver)timer = millis() - lastTime;
   
-  if (timer - timerDisplay >= 100) {
+  if (abs(timer - timerDisplay) >= 100) {
     //Serial.println(timer);
     timerDisplay = timer;
     displayTimer(timerDisplay);
@@ -123,7 +125,7 @@ void loop(){
    //     }
    //     Serial.println();
 	  //}
-	  lastTime = millis();
+	  
 	  timerDisplay = 0;
 	  setupDisplay();
 	  gameSetup();
@@ -195,6 +197,10 @@ void loop(){
     }
     else {
 	  open = 0;
+    }
+    if (open == 1 && !firstOpened) {
+      lastTime = millis();
+      displayTimer(0);
     }
 
 	gameLoop(up, down, left, right, flag, open);

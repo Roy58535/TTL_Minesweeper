@@ -47,6 +47,7 @@ void gameSetup() {
 		}
 	  }
 	}
+	displayMineCount(mineCount);
 	setupDone = true;
   }
 }
@@ -107,6 +108,7 @@ void flagCell(int row, int col) {
 	  mineCount++;
 	  flagGrid[row][col] = 0;
 	}
+	displayMineCount(mineCount);
   }
 }
 
@@ -125,8 +127,10 @@ void openCell(int row, int col) {
 	  }
 	}
   }
-  if (gameWon) displayWin();
-
+  if (gameWon) {
+	isGameOver = true;
+	displayWin();
+  }
   if (mineGrid[row][col] == 1) {
 	displayMine(row, col);
 	openAllMines();

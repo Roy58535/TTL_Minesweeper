@@ -17,3 +17,4 @@ void displayTimer(int32_t time);
 void displayWin();
 void displayLoss();
 void displayTitle(String title, uint16_t color);
+void displayMineCount(int mineCount);
